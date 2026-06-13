@@ -1,3 +1,5 @@
+# How Use https://www.youtube.com/watch?v=la2PTIXOTQo
+
 # Gothic Lock Solver
 
 A command-line solver for Gothic-style lock puzzles.
