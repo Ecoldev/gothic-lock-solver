@@ -4,12 +4,11 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 APP_NAME = "Gothic Lock Solver"
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 
-PLATES = ["P1", "P2", "P3", "P4", "P5", "P6"]
 POSITION_MIN = 1
 POSITION_MAX = 7
-GOAL = (4, 4, 4, 4, 4, 4)
+DEFAULT_GOAL_POS = 4
 
 # A = move right (+1)
 # D = move left (-1)
@@ -19,6 +18,10 @@ MOVE_DELTA = {
 }
 
 PROFILE_DIR = Path("profiles")
+
+# These are initialized at runtime
+PLATES: List[str] = []
+GOAL: Tuple[int, ...] = ()
 
 
 def ask_yes_no(prompt: str, default: bool = True) -> bool:
@@ -32,6 +35,28 @@ def ask_yes_no(prompt: str, default: bool = True) -> bool:
         if raw in ("n", "no", "nie"):
             return False
         print("Please answer y or n.")
+
+
+def ask_int(prompt: str, min_value: Optional[int] = None, max_value: Optional[int] = None) -> int:
+    while True:
+        raw = input(prompt).strip()
+        try:
+            value = int(raw)
+            if min_value is not None and value < min_value:
+                raise ValueError
+            if max_value is not None and value > max_value:
+                raise ValueError
+            return value
+        except ValueError:
+            range_msg = []
+            if min_value is not None:
+                range_msg.append(f">= {min_value}")
+            if max_value is not None:
+                range_msg.append(f"<= {max_value}")
+            if range_msg:
+                print("Value must be " + " and ".join(range_msg))
+            else:
+                print("Please enter a valid integer.")
 
 
 def slugify(text: str) -> str:
@@ -49,64 +74,24 @@ def normalize_plate_name(name: str) -> str:
     return name.strip().upper()
 
 
-def normalize_dependencies(dep: dict) -> dict:
+def plate_index(plate: str) -> int:
     """
-    Ensures:
-    - all plate names are stripped and uppercased,
-    - each plate exists in the dict,
-    - each plate contains itself with sign +1.
+    Converts P1 -> 0, P10 -> 9, etc.
     """
-    normalized = {}
-
-    for plate in PLATES:
-        normalized[plate] = {plate: 1}
-
-    if not isinstance(dep, dict):
-        return normalized
-
-    for plate_key, targets in dep.items():
-        plate = normalize_plate_name(str(plate_key))
-        if plate not in PLATES:
-            continue
-
-        if not isinstance(targets, dict):
-            continue
-
-        for target_key, sign in targets.items():
-            target = normalize_plate_name(str(target_key))
-            if target not in PLATES:
-                continue
-
-            try:
-                sign_int = int(sign)
-            except Exception:
-                continue
-
-            if sign_int not in (1, -1):
-                continue
-
-            # self-dependency is always +1
-            if target == plate:
-                normalized[plate][plate] = 1
-            else:
-                normalized[plate][target] = sign_int
-
-    return normalized
+    return int(plate[1:]) - 1
 
 
-def format_state(state: Tuple[int, ...]) -> str:
-    return "(" + ", ".join(str(x) for x in state) + ")"
+def initialize_lock_configuration() -> None:
+    global PLATES, GOAL
+
+    print_banner_header()
+    count = ask_int("\nHow many plates does this lock have? ", min_value=1)
+
+    PLATES = [f"P{i}" for i in range(1, count + 1)]
+    GOAL = tuple(DEFAULT_GOAL_POS for _ in range(count))
 
 
-def state_to_dict(state: Tuple[int, ...]) -> Dict[str, int]:
-    return {PLATES[i]: state[i] for i in range(len(PLATES))}
-
-
-def dict_to_state(d: Dict[str, int]) -> Tuple[int, ...]:
-    return tuple(d[p] for p in PLATES)
-
-
-def print_banner() -> None:
+def print_banner_header() -> None:
     print(
         f"""
 =====================================
@@ -118,20 +103,33 @@ This wizard assumes every lock is NEW.
 
 Author: buymeacoffee.com/paweldev
 Github: github.com/paweldev/gothic-lock-solver
+""".strip()
+    )
+
+
+def print_banner() -> None:
+    print_banner_header()
+    print(
+        f"""
 
 Position range:
-1 = far left
-7 = far right
+{POSITION_MIN} = far left
+{POSITION_MAX} = far right
 
 Plate numbering:
+""".rstrip()
+    )
+    for plate in PLATES:
+        if plate == PLATES[0]:
+            label = "top plate"
+        elif plate == PLATES[-1]:
+            label = "bottom plate"
+        else:
+            label = f"{plate.lower()}"
+        print(f"{plate} = {label}")
 
-P1 = top plate
-P2 = second plate
-P3 = third plate
-P4 = fourth plate
-P5 = fifth plate
-P6 = bottom plate
-
+    print(
+        """
 
 Directions:
 A = move right (+1)
@@ -140,7 +138,7 @@ D = move left (-1)
 Dependency input:
 R = same direction
 L = opposite direction
-""".strip()
+""".rstrip()
     )
 
 
@@ -167,6 +165,7 @@ def save_profile(lock_name: str, dep: dict) -> None:
 
     payload = {
         "lock_name": lock_name,
+        "plates": PLATES,
         "dependencies": dep,
         "goal": list(GOAL),
         "position_min": POSITION_MIN,
@@ -204,9 +203,7 @@ Press ENTER if no other plates moved.
 
 
 def sign_to_label(sign: int) -> str:
-    if sign == 1:
-        return "R"
-    return "L"
+    return "R" if sign == 1 else "L"
 
 
 def label_to_sign(raw: str) -> Optional[int]:
@@ -234,6 +231,47 @@ def show_dependencies(dep: dict) -> None:
         print()
 
 
+def normalize_dependencies(dep: dict) -> dict:
+    """
+    Ensures:
+    - all plate names are stripped and uppercased,
+    - each plate exists in the dict,
+    - each plate contains itself with sign +1.
+    """
+    normalized = {plate: {plate: 1} for plate in PLATES}
+
+    if not isinstance(dep, dict):
+        return normalized
+
+    for plate_key, targets in dep.items():
+        plate = normalize_plate_name(str(plate_key))
+        if plate not in PLATES:
+            continue
+
+        if not isinstance(targets, dict):
+            continue
+
+        for target_key, sign in targets.items():
+            target = normalize_plate_name(str(target_key))
+            if target not in PLATES:
+                continue
+
+            try:
+                sign_int = int(sign)
+            except Exception:
+                continue
+
+            if sign_int not in (1, -1):
+                continue
+
+            if target == plate:
+                normalized[plate][plate] = 1
+            else:
+                normalized[plate][target] = sign_int
+
+    return normalized
+
+
 def parse_additional_dependencies(raw: str) -> Tuple[Optional[List[Tuple[str, int]]], Optional[str]]:
     raw = raw.strip()
     if not raw:
@@ -250,7 +288,7 @@ def parse_additional_dependencies(raw: str) -> Tuple[Optional[List[Tuple[str, in
         target = normalize_plate_name(target_raw)
 
         if target not in PLATES:
-            return None, f"Invalid plate: '{target_raw}'. Use P1-P6."
+            return None, f"Invalid plate: '{target_raw}'. Use P1-P{len(PLATES)}."
 
         sign = label_to_sign(sign_raw)
         if sign is None:
@@ -313,9 +351,21 @@ def ask_start_state() -> Tuple[int, ...]:
                     break
             except ValueError:
                 pass
-            print("Range must be 1..7")
+            print(f"Range must be {POSITION_MIN}..{POSITION_MAX}")
 
     return tuple(start)
+
+
+def format_state(state: Tuple[int, ...]) -> str:
+    return "(" + ", ".join(str(x) for x in state) + ")"
+
+
+def state_to_dict(state: Tuple[int, ...]) -> Dict[str, int]:
+    return {PLATES[i]: state[i] for i in range(len(PLATES))}
+
+
+def dict_to_state(d: Dict[str, int]) -> Tuple[int, ...]:
+    return tuple(d[p] for p in PLATES)
 
 
 def simulate(
@@ -335,7 +385,7 @@ def simulate(
 
     # Check blocks first
     for target, sign in affected.items():
-        idx = int(target[1]) - 1
+        idx = plate_index(target)
         new_pos = state[idx] + (delta * sign)
         if new_pos < POSITION_MIN or new_pos > POSITION_MAX:
             return None, target
@@ -343,7 +393,7 @@ def simulate(
     # Apply move
     new_state = list(state)
     for target, sign in affected.items():
-        idx = int(target[1]) - 1
+        idx = plate_index(target)
         new_state[idx] += (delta * sign)
 
     return tuple(new_state), None
@@ -374,7 +424,7 @@ def bfs(start: Tuple[int, ...], dep: dict):
 
         for plate in PLATES:
             for direction in ("A", "D"):
-                nxt, blocker = simulate(state, plate, direction, dep)
+                nxt, _ = simulate(state, plate, direction, dep)
                 if nxt is None:
                     continue
                 if nxt in visited:
@@ -397,7 +447,7 @@ def show_solution(start: Tuple[int, ...], solution: List[str], dep: dict) -> Non
 
     for i, move in enumerate(solution, 1):
         plate, direction = move.split("+", 1)
-        state, blocker = simulate(state, plate, direction, dep)
+        state, _ = simulate(state, plate, direction, dep)
         print(f"{i:02d}. {move}")
         print(f"    -> {format_state(state)}")
 
@@ -431,7 +481,9 @@ def solve_lock_wizard(lock_name: str, dep: dict) -> None:
 
 def run_wizard() -> None:
     while True:
+        initialize_lock_configuration()
         print_banner()
+
         input("\nPress ENTER to start...")
 
         lock_name = input("\nEnter lock name: ").strip() or "new_lock"

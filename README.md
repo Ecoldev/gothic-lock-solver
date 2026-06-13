@@ -2,17 +2,27 @@
 
 # Gothic Lock Solver
 
+Supports Gothic 1 Remake locks with any number of plates.
+
 A command-line solver for Gothic-style lock puzzles.
 
 The tool assumes that every lock is new and unknown.
 
 It guides the player through discovering lock dependencies and then calculates the shortest solution automatically.
 
+Current Version: v2.1.0
+
 ---
 
 # How It Works
 
-Every lock contains six plates.
+Every lock may contain any number of plates.
+
+When creating a new lock profile, the solver asks for the number of plates and automatically creates:
+
+```text
+P1 ... Pn
+```
 
 Plate numbering:
 
@@ -22,9 +32,10 @@ TOP
  ├─ P1
  ├─ P2
  ├─ P3
- ├─ P4
- ├─ P5
- └─ P6
+ │
+ ├─ ...
+ │
+ └─ Pn
 BOTTOM
 ```
 
@@ -37,7 +48,9 @@ Position range:
 7 = far right
 ```
 
-Target:
+Every plate must end in position 4.
+
+Example for a 7-plate lock:
 
 ```text
 P1 = 4
@@ -46,7 +59,44 @@ P3 = 4
 P4 = 4
 P5 = 4
 P6 = 4
+P7 = 4
 ```
+
+---
+
+# Dynamic Plate Support
+
+Starting from version 2.1.0, the solver supports locks with any number of plates.
+
+Examples:
+
+```text
+6 plates
+P1-P6
+
+7 plates
+P1-P7
+
+8 plates
+P1-P8
+
+10 plates
+P1-P10
+```
+
+When starting a new lock, simply enter:
+
+```text
+How many plates does this lock have? 7
+```
+
+The solver automatically adjusts:
+
+- Dependency discovery
+- State generation
+- Goal generation
+- Solution calculation
+- Profile storage
 
 ---
 
@@ -112,7 +162,7 @@ You only enter additional affected plates.
 
 # Step 2 - Enter Current Positions
 
-Example:
+Example for a 7-plate lock:
 
 ```text
 P1: 7
@@ -121,6 +171,7 @@ P3: 7
 P4: 6
 P5: 1
 P6: 5
+P7: 3
 ```
 
 The solver calculates the shortest valid solution.
@@ -152,13 +203,16 @@ D = move left
 
 # Features
 
-* Guided lock discovery wizard
-* Automatic dependency modeling
-* Breadth-First Search (BFS)
-* Shortest-path solver
-* Invalid move detection
-* Profile saving
-* JSON export
+- Guided lock discovery wizard
+- Dynamic plate count (P1-Pn)
+- Automatic dependency modeling
+- Breadth-First Search (BFS)
+- Shortest-path solver
+- Invalid move detection
+- Profile saving
+- JSON export
+- Support for locks larger than 6 plates
+- Support for plate numbers above P9 (P10, P11, P12...)
 
 ---
 
@@ -166,7 +220,14 @@ D = move left
 
 Requirements:
 
-* Python 3.10+
+- Python 3.10+
+
+Clone the repository:
+
+```bash
+git clone https://github.com/paweldev/gothic-lock-solver.git
+cd gothic-lock-solver
+```
 
 Run:
 
@@ -198,11 +259,69 @@ dist/GothicLockSolver.exe
 
 ---
 
+# Example Workflow
+
+```text
+How many plates does this lock have? 7
+
+Enter lock name:
+Old Camp Warehouse
+
+STEP 1/2 - DISCOVER DEPENDENCIES
+
+Testing P1
+Move P1 one step in the game.
+
+Which OTHER plates moved?
+P2=R,P4=L
+
+...
+
+STEP 2/2 - SOLVE LOCK
+
+P1: 7
+P2: 3
+P3: 5
+P4: 1
+P5: 4
+P6: 7
+P7: 2
+
+Solving...
+
+SOLUTION
+
+01. P4+A
+02. P2+D
+03. P1+D
+...
+```
+
+---
+
+# Known Limitations
+
+The solver uses Breadth-First Search (BFS) to guarantee the shortest solution.
+
+Very large locks may require significantly more memory and processing time because the number of possible states grows exponentially.
+
+Examples:
+
+```text
+6 plates = 117,649 states
+7 plates = 823,543 states
+8 plates = 5,764,801 states
+```
+
+---
+
 # Support
 
 If this project helped you:
 
-buymeacoffee.com/paweldev
+https://buymeacoffee.com/paweldev
+
+---
 
 ## License
 
