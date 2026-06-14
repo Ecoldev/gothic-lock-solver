@@ -13,7 +13,7 @@ pydirectinput.PAUSE = 0
 pydirectinput.FAILSAFE = False
 
 APP_NAME = "Gothic Lock Solver"
-VERSION = "2.1.0"
+VERSION = "2.2.0"
 
 POSITION_MIN = 1
 POSITION_MAX = 7
