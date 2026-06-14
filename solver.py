@@ -2,6 +2,15 @@ import json
 from collections import deque
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+import time
+import pydirectinput
+import pygetwindow as gw
+import win32gui
+import win32con
+
+
+pydirectinput.PAUSE = 0
+pydirectinput.FAILSAFE = False
 
 APP_NAME = "Gothic Lock Solver"
 VERSION = "2.1.0"
@@ -453,6 +462,67 @@ def show_solution(start: Tuple[int, ...], solution: List[str], dep: dict) -> Non
 
     print(f"\nNumber of moves: {len(solution)}")
 
+def activate_gothic():
+    windows = gw.getWindowsWithTitle("Gothic 1 Remake")
+
+    if not windows:
+        print("Nie znaleziono okna Gothic")
+        return False
+
+    hwnd = windows[0]._hWnd
+
+    win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+    win32gui.SetForegroundWindow(hwnd)
+
+    return True
+
+def execute_solution(solution):
+    """
+    Execute solution directly in Gothic.
+    Assumes cursor starts on P1.
+    """
+
+    print("\n")
+    print("=====================================")
+    print("OPEN THE LOCK IN GOTHIC")
+    print("SET CURSOR TO P1")
+    print("=====================================")
+
+    input("\nPress ENTER when ready...")
+    print("\nOpen Gothic window...")
+
+    if not activate_gothic():
+        return
+
+    time.sleep(1)
+  
+    for i in range(3, 0, -1):
+        print(f"Starting in {i}...")
+        time.sleep(1)
+
+    current_position = 1
+
+    for step_no, move in enumerate(solution, start=1):
+
+        plate, action = move.split("+")
+        target_position = int(plate[1:])
+
+        while current_position < target_position:
+            pydirectinput.press("s")
+            current_position += 1
+            time.sleep(0.15)
+
+        while current_position > target_position:
+            pydirectinput.press("w")
+            current_position -= 1
+            time.sleep(0.15)
+
+        pydirectinput.press(action.lower())
+        time.sleep(0.15)
+        print(f"{step_no:02d}. {move}")
+
+    print("\nExecution finished.")
+
 
 def solve_lock_wizard(lock_name: str, dep: dict) -> None:
     start = ask_start_state()
@@ -474,9 +544,22 @@ def solve_lock_wizard(lock_name: str, dep: dict) -> None:
 
     show_solution(start, solution, dep)
 
-    save_choice = ask_yes_no("\nSave this lock profile for later?", default=True)
+    auto_execute = ask_yes_no(
+        "\nExecute solution in Gothic automatically?",
+        default=True
+    )
+
+    if auto_execute:
+        execute_solution(solution)
+
+    save_choice = ask_yes_no(
+        "\nSave this lock profile for later?",
+        default=True
+    )
+
     if save_choice:
         save_profile(lock_name, dep)
+
 
 
 def run_wizard() -> None:
