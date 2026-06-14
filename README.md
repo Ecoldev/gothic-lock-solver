@@ -1,7 +1,7 @@
 # Gothic Lock Solver
 
 Video Tutorial:
-https://www.youtube.com/watch?v=la2PTIXOTQo
+https://youtu.be/NQkDHOd0v6U
 
 ## Overview
 
