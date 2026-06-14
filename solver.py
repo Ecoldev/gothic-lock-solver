@@ -479,7 +479,6 @@ def activate_gothic():
 def execute_solution(solution):
     """
     Execute solution directly in Gothic.
-    Assumes cursor starts on P1.
     """
 
     print("\n")
@@ -495,12 +494,30 @@ def execute_solution(solution):
         return
 
     time.sleep(1)
-  
+
     for i in range(3, 0, -1):
         print(f"Starting in {i}...")
         time.sleep(1)
 
+    print("Resetting lock position...")
+
+    # Reset lock
+    pydirectinput.press("r")
+    time.sleep(0.5)
+
+    # Zejdź na sam dół
+    for _ in range(len(PLATES)):
+        pydirectinput.press("s")
+        time.sleep(0.15)
+
+    # Wróć na P1
+    for _ in range(len(PLATES) - 1):
+        pydirectinput.press("w")
+        time.sleep(0.15)
+
     current_position = 1
+
+    print("Starting from P1...")
 
     for step_no, move in enumerate(solution, start=1):
 
