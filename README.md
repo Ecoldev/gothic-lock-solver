@@ -9,7 +9,7 @@ Gothic Lock Solver is a command-line tool for solving lock puzzles in Gothic 1 R
 
 The solver supports locks with any number of plates and automatically discovers lock dependencies, calculates the shortest solution using Breadth-First Search (BFS), and can execute the solution directly inside the game.
 
-Current Version: **v2.2.0**
+Current Version: **v2.2.1**
 
 ---
 
@@ -21,6 +21,8 @@ Current Version: **v2.2.0**
 * Automatic dependency modeling
 * Breadth-First Search (BFS) shortest-path solver
 * Automatic lock execution inside the game
+* Automatic lock reset before execution
+* Automatic navigation to P1
 * Automatic plate navigation
 * Keyboard input simulation
 * JSON profile storage
@@ -209,7 +211,7 @@ D = move left
 
 ## Automatic Execution
 
-Starting with version 2.2.0, the solver can execute solutions directly inside Gothic 1 Remake.
+Starting with version 2.2.1, the solver can execute solutions directly inside Gothic 1 Remake.
 
 Workflow:
 
@@ -222,17 +224,20 @@ Calculate shortest solution
 ↓
 Open lock in Gothic
 ↓
-Place cursor on P1
-↓
 Press ENTER
+↓
+Lock reset
+↓
+Automatic navigation to P1
 ↓
 Automatic execution
 ```
 
 The executor automatically:
 
+* Resets the lock
+* Navigates to P1
 * Navigates between plates
-* Selects the correct plate
 * Simulates keyboard input
 * Executes the full solution
 
@@ -245,13 +250,15 @@ Execute solution in Gothic automatically? [Y/n]
 Y
 
 OPEN THE LOCK IN GOTHIC
-SET CURSOR TO P1
 
 Press ENTER when ready...
 
 Starting in 3...
 Starting in 2...
 Starting in 1...
+
+Resetting lock position...
+Starting from P1...
 
 01. P1+A
 02. P1+A
@@ -270,6 +277,7 @@ A = move right
 D = move left
 W = move up
 S = move down
+R = reset lock
 ```
 
 The executor automatically switches between plates and performs the required actions.
@@ -291,7 +299,7 @@ pip install pydirectinput pygetwindow pywin32
 Clone repository:
 
 ```bash
-git clone https://github.com/paweldev/gothic-lock-solver.git
+git clone https://github.com/Ecoldev/gothic-lock-solver.git
 cd gothic-lock-solver
 ```
 
@@ -360,13 +368,26 @@ SOLUTION
 03. P2+A
 ...
 
+Number of moves: 45
+
 Execute solution in Gothic automatically? [Y/n]
 Y
 
 OPEN THE LOCK IN GOTHIC
-SET CURSOR TO P1
 
 Press ENTER when ready...
+
+Starting in 3...
+Starting in 2...
+Starting in 1...
+
+Resetting lock position...
+Starting from P1...
+
+01. P1+A
+02. P1+A
+03. P2+A
+...
 ```
 
 ---
